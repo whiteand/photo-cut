@@ -80,6 +80,14 @@ export default function SourceView(props: ISourceViewProps) {
     drawCircle(ctx, b, R, pointColor);
     drawCircle(ctx, c, R, pointColor);
     drawCircle(ctx, d, R, pointColor);
+
+    ctx.font = '100px Arial'
+    ctx.fillStyle = 'black'
+    const SHIFT = 100
+    ctx.fillText("A", a.x - SHIFT, a.y - SHIFT);
+    ctx.fillText("B", b.x + SHIFT, b.y - SHIFT);
+    ctx.fillText("C", c.x + SHIFT, c.y + SHIFT);
+    ctx.fillText("D", d.x - SHIFT, d.y + SHIFT);
   });
 
   const [nextPoint, setNextPoint] = createSignal<"a" | "b" | "c" | "d">("a");
@@ -93,8 +101,8 @@ export default function SourceView(props: ISourceViewProps) {
     const W = width();
     const H = height();
     const rect = canvas.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * W;
-    const y = ((event.clientY - rect.top) / rect.height) * H;
+    const x = Math.floor(((event.clientX - rect.left) / rect.width) * W);
+    const y = Math.floor(((event.clientY - rect.top) / rect.height) * H);
     setter({ x, y });
     setNextPoint((p) => {
       if (p === "a") return "b";
