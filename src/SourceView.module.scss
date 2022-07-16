@@ -1,0 +1,13 @@
+.wrapper {
+  position: relative;
+  margin: 0 auto;
+  canvas:first-child {
+    max-height: 80vh;
+  }
+  canvas:last-child {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+  }
+}
