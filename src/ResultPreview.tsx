@@ -1,4 +1,4 @@
-import { createEffect, createSignal, onCleanup } from "solid-js";
+import { createEffect, createSignal, onCleanup, Show } from "solid-js";
 import { Point } from "./Point";
 import { createProgram, createShader, setRectangle } from "./webgl";
 
@@ -69,7 +69,7 @@ export default function ResultPreview(props: IResultPreviewProps) {
     if (!source) return;
     const timeout = setTimeout(() => {
       setShouldRender(true);
-    }, 500);
+    }, 100);
     onCleanup(() => clearTimeout(timeout));
   });
   createEffect(() => {
@@ -77,7 +77,6 @@ export default function ResultPreview(props: IResultPreviewProps) {
     setShouldRender(false);
   });
 
-  
   createEffect(() => {
     const shouldRender = getShouldRender();
     if (!shouldRender) return;
@@ -88,7 +87,7 @@ export default function ResultPreview(props: IResultPreviewProps) {
     canvas.height = height;
     const gl = canvas.getContext("webgl2");
     if (!gl) return;
-    console.log(width, height)
+    console.log(width, height);
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
     const fragmentShader = createShader(
       gl,
@@ -162,7 +161,11 @@ export default function ResultPreview(props: IResultPreviewProps) {
     gl.drawArrays(gl.TRIANGLES, 0, n);
   });
 
-  return <canvas ref={canvas}></canvas>;
+  return (
+    <Show when={getShouldRender()}>
+      <canvas ref={canvas}></canvas>
+    </Show>
+  );
 }
 function setGeometry(
   gl: WebGL2RenderingContext,
