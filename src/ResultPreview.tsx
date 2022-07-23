@@ -1,6 +1,11 @@
 import { createEffect, createSignal, onCleanup } from "solid-js";
 import { Point } from "./Point";
-import { createProgram, createShader, randomInt, setRectangle } from "./webgl";
+import {
+  createProgram,
+  createShader,
+  setColoredRectangle,
+  setRectangle,
+} from "./webgl";
 
 interface IResultPreviewProps {
   source: ImageData;
@@ -18,6 +23,7 @@ const VERTEX_SHADER = `
 // an attribute is an input (in) to a vertex shader.
 // It will receive data from a buffer
 in vec2 a_position;
+out vec2 u_uv;
 
 uniform vec2 u_resolution;
  
@@ -27,6 +33,7 @@ void main() {
   vec2 mopo = zeroToOne * 2.0;
   vec2 clip = mopo - 1.0;
   gl_Position = vec4(clip.x, -clip.y, 0, 1);
+  u_uv = zeroToOne;
 }
 
 `.trim();
@@ -34,17 +41,25 @@ void main() {
 const FRAGMENT_SHADER = `
 #version 300 es
  
-// fragment shaders don't have a default precision so we need
-// to pick one. highp is a good default. It means "high precision"
 precision highp float;
 
-// we need to declare an output for the fragment shader
+in vec2 u_uv;
+uniform vec2 u_resolution;
+uniform vec2 u_src_resolution;
+uniform sampler2D u_src;
+uniform vec2 u_a;
+uniform vec2 u_b;
+uniform vec2 u_c;
+uniform vec2 u_d;
+
 out vec4 outColor;
-uniform vec4 u_color;
  
 void main() {
-  // Just set the output to a constant reddish-purple
-  outColor = u_color;
+  vec2 ab = u_a + (u_b - u_a) * u_uv.x;
+  vec2 dc = u_d + (u_c - u_d) * u_uv.x;
+  vec2 p = ab + (dc - ab) * u_uv.y;
+  vec2 texCoord = p / u_src_resolution;
+  outColor = texture(u_src, texCoord);
 }
 `.trim();
 export default function ResultPreview(props: IResultPreviewProps) {
@@ -79,63 +94,83 @@ export default function ResultPreview(props: IResultPreviewProps) {
       gl.deleteShader(vertexShader);
     });
 
-    const positionBuffer = gl.createBuffer();
-    if (!positionBuffer) return;
-    onCleanup(() => {
-      gl.deleteBuffer(positionBuffer);
-    });
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-    setRectangle(gl, 10, 20, 60, 10);
-
     const vao = gl.createVertexArray();
-
     if (!vao) return;
-
     onCleanup(() => {
       gl.deleteVertexArray(vao);
     });
-
     gl.bindVertexArray(vao);
-
-    const aPositionAttributeLoc = gl.getAttribLocation(program, "a_position");
-    gl.enableVertexAttribArray(aPositionAttributeLoc);
-    gl.vertexAttribPointer(aPositionAttributeLoc, 2, gl.FLOAT, false, 0, 0);
-
-    const uResolutionUniformLoc = gl.getUniformLocation(
+    const n: number = setGeometry(gl, program, props);
+    const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+    const srcResolutionLocation = gl.getUniformLocation(
       program,
-      "u_resolution"
+      "u_src_resolution"
     );
 
-    const uColorUniformLoc = gl.getUniformLocation(program, "u_color");
+    const srcImageLocation = gl.getUniformLocation(program, "u_src");
 
-    gl.viewport(0, 0, props.width, props.height);
-
-    gl.clearColor(0, 0, 0, 0);
-
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    const texture = gl.createTexture();
+    if (!texture) return;
+    onCleanup(() => gl.deleteTexture(texture));
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    var mipLevel = 0; // the largest mip
+    var internalFormat = gl.RGBA; // format we want in the texture
+    var srcFormat = gl.RGBA; // format of data we are supplying
+    var srcType = gl.UNSIGNED_BYTE; // type of data we are supplying
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      mipLevel,
+      internalFormat,
+      srcFormat,
+      srcType,
+      props.source
+    );
+    const aLocation = gl.getUniformLocation(program, "u_a");
+    const bLocation = gl.getUniformLocation(program, "u_b");
+    const cLocation = gl.getUniformLocation(program, "u_c");
+    const dLocation = gl.getUniformLocation(program, "u_d");
 
     gl.useProgram(program);
     onCleanup(() => {
       gl.useProgram(null);
     });
-    gl.uniform2f(uResolutionUniformLoc, props.width, props.height);
 
-    for (let i = 0; i < 100; i++) {
-      const x = randomInt(props.width);
-      const y = randomInt(props.height);
-      const w = randomInt(props.width - x);
-      const h = randomInt(props.height - y);
-      const r = randomInt(255) / 255;
-      const g = randomInt(255) / 255;
-      const b = randomInt(255) / 255;
-      console.log(x, y, w, h, r, g, b);
-      const a = 1;
-      setRectangle(gl, x, y, w, h);
-      gl.uniform4f(uColorUniformLoc, r, g, b, a);
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-    }
+    // render
+    gl.uniform2f(resolutionLocation, props.width, props.height);
+    gl.uniform2f(
+      srcResolutionLocation,
+      props.source.width,
+      props.source.height
+    );
+    
+    gl.uniform2f(aLocation, props.a.x, props.a.y);
+    gl.uniform2f(bLocation, props.b.x, props.b.y);
+    gl.uniform2f(cLocation, props.c.x, props.c.y);
+    gl.uniform2f(dLocation, props.d.x, props.d.y);
+
+    gl.uniform1i(srcImageLocation, 0);
+
+    gl.drawArrays(gl.TRIANGLES, 0, n);
   });
 
   return <canvas ref={canvas}></canvas>;
+}
+function setGeometry(
+  gl: WebGL2RenderingContext,
+  program: WebGLProgram,
+  props: IResultPreviewProps
+) {
+  const positionLocation = gl.getAttribLocation(program, "a_position");
+  const positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  setRectangle(gl, 0, 0, props.width, props.height);
+  gl.enableVertexAttribArray(positionLocation);
+  gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+  return 6;
 }

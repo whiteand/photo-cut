@@ -1,30 +1,9 @@
-import {
-  Component,
-  createEffect,
-  createSignal,
-  onCleanup,
-  Show,
-} from "solid-js";
+import { Component, createEffect, createSignal, Show } from "solid-js";
 import s from "./App.module.scss";
 import { Point } from "./Point";
 import ResultPreview from "./ResultPreview";
 import SourceView from "./SourceView";
 import UploadImageButton from "./UploadButton";
-import Cutter from "./Cutter.worker?worker";
-import { IRequest } from "./IRequest";
-import { isValidResponse } from "./isValidResponse";
-
-const cutterWorkers = (() => {
-  const workers = Array.from({ length: 10 }, () => new Cutter());
-  let nextWorker = 0;
-  return {
-    get: () => {
-      const worker = workers[nextWorker];
-      nextWorker = (nextWorker + 1) % workers.length;
-      return worker;
-    },
-  };
-})();
 
 const DEFAULT_RES_SIZE = 512;
 const App: Component = () => {
@@ -33,8 +12,8 @@ const App: Component = () => {
   const [getC, setC] = createSignal<Point>({ x: 0, y: 0 });
   const [getD, setD] = createSignal<Point>({ x: 0, y: 0 });
   const [getSource, setSource] = createSignal<ImageData | null>(null);
-  const [getResultWidth, setResultWidth] = createSignal(0);
-  const [getResultHeight, setResultHeight] = createSignal(0);
+  const [getResultWidth, setResultWidth] = createSignal(400);
+  const [getResultHeight, setResultHeight] = createSignal(300);
   createEffect(() => {
     const source = getSource();
     if (!source) return;
@@ -58,6 +37,7 @@ const App: Component = () => {
           value={getResultHeight()}
           onChange={(e) => setResultHeight(Number(e.currentTarget.value))}
         />
+
         <SourceView
           image={getSource()!}
           a={getA()}
