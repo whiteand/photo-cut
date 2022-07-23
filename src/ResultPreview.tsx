@@ -72,7 +72,12 @@ export default function ResultPreview(props: IResultPreviewProps) {
     }, 500);
     onCleanup(() => clearTimeout(timeout));
   });
+  createEffect(() => {
+    const { width, height } = props;
+    setShouldRender(false);
+  });
 
+  
   createEffect(() => {
     const shouldRender = getShouldRender();
     if (!shouldRender) return;
@@ -83,6 +88,7 @@ export default function ResultPreview(props: IResultPreviewProps) {
     canvas.height = height;
     const gl = canvas.getContext("webgl2");
     if (!gl) return;
+    console.log(width, height)
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
     const fragmentShader = createShader(
       gl,
@@ -139,6 +145,7 @@ export default function ResultPreview(props: IResultPreviewProps) {
     const cLocation = gl.getUniformLocation(program, "u_c");
     const dLocation = gl.getUniformLocation(program, "u_d");
 
+    gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(program);
 
     // render
