@@ -1,16 +1,12 @@
 import { createEffect, createSignal, onCleanup } from "solid-js";
 import { Point } from "./Point";
-import {
-  createProgram,
-  createShader,
-  setColoredRectangle,
-  setRectangle,
-} from "./webgl";
+import { createProgram, createShader, setRectangle } from "./webgl";
 
 interface IResultPreviewProps {
   source: ImageData;
   width: number;
   height: number;
+  sourceName: string;
   a: Point;
   b: Point;
   c: Point;
@@ -64,20 +60,28 @@ void main() {
 `.trim();
 export default function ResultPreview(props: IResultPreviewProps) {
   let canvas!: HTMLCanvasElement;
-  const [getContext, setContext] = createSignal<WebGL2RenderingContext | null>(
-    null
-  );
+  const [getShouldRender, setShouldRender] = createSignal(false);
+
   createEffect(() => {
-    const { width, height } = props;
-    canvas.width = width;
-    canvas.height = height;
-    const gl = canvas.getContext("webgl2");
-    if (!gl) return;
-    setContext(gl);
+    const shouldRender = getShouldRender();
+    if (shouldRender) return;
+    const source = props.source;
+    if (!source) return;
+    const timeout = setTimeout(() => {
+      setShouldRender(true);
+    }, 500);
+    onCleanup(() => clearTimeout(timeout));
   });
 
   createEffect(() => {
-    const gl = getContext();
+    const shouldRender = getShouldRender();
+    if (!shouldRender) return;
+    const { source } = props;
+    if (!source) return;
+    const { width, height, a, b, c, d } = props;
+    canvas.width = width;
+    canvas.height = height;
+    const gl = canvas.getContext("webgl2");
     if (!gl) return;
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
     const fragmentShader = createShader(
@@ -100,7 +104,7 @@ export default function ResultPreview(props: IResultPreviewProps) {
       gl.deleteVertexArray(vao);
     });
     gl.bindVertexArray(vao);
-    const n: number = setGeometry(gl, program, props);
+    const n: number = setGeometry(gl, program, width, height);
     const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
     const srcResolutionLocation = gl.getUniformLocation(
       program,
@@ -128,7 +132,7 @@ export default function ResultPreview(props: IResultPreviewProps) {
       internalFormat,
       srcFormat,
       srcType,
-      props.source
+      source
     );
     const aLocation = gl.getUniformLocation(program, "u_a");
     const bLocation = gl.getUniformLocation(program, "u_b");
@@ -136,22 +140,15 @@ export default function ResultPreview(props: IResultPreviewProps) {
     const dLocation = gl.getUniformLocation(program, "u_d");
 
     gl.useProgram(program);
-    onCleanup(() => {
-      gl.useProgram(null);
-    });
 
     // render
-    gl.uniform2f(resolutionLocation, props.width, props.height);
-    gl.uniform2f(
-      srcResolutionLocation,
-      props.source.width,
-      props.source.height
-    );
-    
-    gl.uniform2f(aLocation, props.a.x, props.a.y);
-    gl.uniform2f(bLocation, props.b.x, props.b.y);
-    gl.uniform2f(cLocation, props.c.x, props.c.y);
-    gl.uniform2f(dLocation, props.d.x, props.d.y);
+    gl.uniform2f(resolutionLocation, width, height);
+    gl.uniform2f(srcResolutionLocation, source.width, source.height);
+
+    gl.uniform2f(aLocation, a.x, a.y);
+    gl.uniform2f(bLocation, b.x, b.y);
+    gl.uniform2f(cLocation, c.x, c.y);
+    gl.uniform2f(dLocation, d.x, d.y);
 
     gl.uniform1i(srcImageLocation, 0);
 
@@ -163,12 +160,13 @@ export default function ResultPreview(props: IResultPreviewProps) {
 function setGeometry(
   gl: WebGL2RenderingContext,
   program: WebGLProgram,
-  props: IResultPreviewProps
+  width: number,
+  height: number
 ) {
   const positionLocation = gl.getAttribLocation(program, "a_position");
   const positionBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  setRectangle(gl, 0, 0, props.width, props.height);
+  setRectangle(gl, 0, 0, width, height);
   gl.enableVertexAttribArray(positionLocation);
   gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 

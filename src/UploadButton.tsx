@@ -3,7 +3,7 @@ import { JSX } from "solid-js/jsx-runtime";
 import s from "./UploadButton.module.scss";
 
 interface IUploadButtonProps {
-  onImageLoaded: (imageData: ImageData) => void;
+  onImageLoaded: (imageData: { image: ImageData; name: string }) => void;
   children?: JSX.Element;
 }
 
@@ -28,7 +28,7 @@ export default function UploadImageButton(props: IUploadButtonProps) {
         const ctx = canvas.getContext("2d")!;
         ctx.drawImage(img, 0, 0);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        props.onImageLoaded(imageData)
+        props.onImageLoaded({ image: imageData, name: f.name });
       };
       img.src = data;
     };

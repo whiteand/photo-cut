@@ -1,4 +1,10 @@
-import { Component, createEffect, createSignal, Show } from "solid-js";
+import {
+  Component,
+  createEffect,
+  createMemo,
+  createSignal,
+  Show,
+} from "solid-js";
 import s from "./App.module.scss";
 import { Point } from "./Point";
 import ResultPreview from "./ResultPreview";
@@ -11,7 +17,12 @@ const App: Component = () => {
   const [getB, setB] = createSignal<Point>({ x: 0, y: 0 });
   const [getC, setC] = createSignal<Point>({ x: 0, y: 0 });
   const [getD, setD] = createSignal<Point>({ x: 0, y: 0 });
-  const [getSource, setSource] = createSignal<ImageData | null>(null);
+  const [getSource, setSource] = createSignal<{
+    image: ImageData;
+    name: string;
+  } | null>(null);
+  const sourceImage = createMemo(() => getSource()?.image || null);
+  const sourceName = createMemo(() => getSource()?.name || null);
   const [getResultWidth, setResultWidth] = createSignal(400);
   const [getResultHeight, setResultHeight] = createSignal(300);
   createEffect(() => {
@@ -23,9 +34,7 @@ const App: Component = () => {
   return (
     <div class={s.App}>
       <header class={s.header}>Welcome to Photo Cutter!</header>
-      <Show when={getSource() === null}>
-        <UploadImageButton onImageLoaded={setSource}>Upload</UploadImageButton>
-      </Show>
+      <UploadImageButton onImageLoaded={setSource}>Upload</UploadImageButton>
       <Show when={getSource() !== null}>
         <input
           type="number"
@@ -37,9 +46,8 @@ const App: Component = () => {
           value={getResultHeight()}
           onChange={(e) => setResultHeight(Number(e.currentTarget.value))}
         />
-
         <SourceView
-          image={getSource()!}
+          image={sourceImage()!}
           a={getA()}
           b={getB()}
           c={getC()}
@@ -50,7 +58,8 @@ const App: Component = () => {
           onDChange={setD}
         />
         <ResultPreview
-          source={getSource()!}
+          source={sourceImage()!}
+          sourceName={sourceName()!}
           width={getResultWidth()}
           height={getResultHeight()}
           a={getA()}
