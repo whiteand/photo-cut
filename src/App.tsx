@@ -40,11 +40,13 @@ const App: Component = () => {
           type="number"
           value={getResultWidth()}
           onChange={(e) => setResultWidth(Number(e.currentTarget.value))}
+          min="1"
         />
         <input
           type="number"
           value={getResultHeight()}
           onChange={(e) => setResultHeight(Number(e.currentTarget.value))}
+          min="1"
         />
         <div class={s.pair}>
           <SourceView
