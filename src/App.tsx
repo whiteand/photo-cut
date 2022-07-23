@@ -46,27 +46,29 @@ const App: Component = () => {
           value={getResultHeight()}
           onChange={(e) => setResultHeight(Number(e.currentTarget.value))}
         />
-        <SourceView
-          image={sourceImage()!}
-          a={getA()}
-          b={getB()}
-          c={getC()}
-          d={getD()}
-          onAChange={setA}
-          onBChange={setB}
-          onCChange={setC}
-          onDChange={setD}
-        />
-        <ResultPreview
-          source={sourceImage()!}
-          sourceName={sourceName()!}
-          width={getResultWidth()}
-          height={getResultHeight()}
-          a={getA()}
-          b={getB()}
-          c={getC()}
-          d={getD()}
-        />
+        <div class={s.pair}>
+          <SourceView
+            image={sourceImage()!}
+            a={getA()}
+            b={getB()}
+            c={getC()}
+            d={getD()}
+            onAChange={setA}
+            onBChange={setB}
+            onCChange={setC}
+            onDChange={setD}
+          />
+          <ResultPreview
+            source={sourceImage()!}
+            sourceName={sourceName()!}
+            width={getResultWidth()}
+            height={getResultHeight()}
+            a={getA()}
+            b={getB()}
+            c={getC()}
+            d={getD()}
+          />
+        </div>
       </Show>
     </div>
   );
