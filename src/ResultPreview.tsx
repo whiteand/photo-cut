@@ -69,7 +69,7 @@ export default function ResultPreview(props: IResultPreviewProps) {
     if (!source) return;
     const timeout = setTimeout(() => {
       setShouldRender(true);
-    }, 100);
+    }, 500);
     onCleanup(() => clearTimeout(timeout));
   });
   createEffect(() => {
